@@ -1,0 +1,55 @@
+node {
+    def mvnHome
+    def mvnWorkspace = './'
+    def appVersion
+
+    def imageRegistry = 'docker.io'
+    def imageBuildHome='./'
+    def imagePushRegistry='docker.io/milkliver/java-task01'
+    
+    def dockerfilePath = './Dockerfile'
+
+    stage('Preparation') { // for display purposes
+        // Get some code from a GitHub repository
+        sh 'rm -rf *'
+        git branch: 'main', credentialsId: 'neil-github', url: 'git@github.com:MilkLiver/scdf-java01.git'
+        // Get the Maven tool.
+        mvnHome = tool name: 'Default', type: 'maven'
+    }
+    
+    stage('mvnBuild') {
+        // Run the maven build
+        withEnv(["MVN_HOME=$mvnHome"]) {
+            dir("$mvnWorkspace") {
+                sh 'echo $MVN_HOME'
+                sh '$MVN_HOME/bin/mvn clean package'
+                sh "mkdir externalProgramFiles"
+                sh "cp ./target/*.jar ./externalProgramFiles/"
+                appVersion = sh script:"$MVN_HOME/bin/mvn help:evaluate -Dexpression=project.version -q -DforceStdout",returnStdout: true
+                echo "version: $appVersion"
+            }
+        }
+    }
+
+    stage('imageBuild') {
+        // Run the image build
+        withCredentials([usernamePassword(credentialsId: 'neil-dockerhub', passwordVariable: 'dockerPassword', usernameVariable: 'dockerUsername')]) {
+            dir("$imageBuildHome") {
+                sh "buildah --version"
+                sh "buildah login -u $dockerUsername -p $dockerPassword $imageRegistry"
+                sh "buildah bud -t $imagePushRegistry:$appVersion ."
+            }
+        }
+    }
+
+    stage('imagePush') {
+        // Run the image push
+        withCredentials([usernamePassword(credentialsId: 'neil-dockerhub', passwordVariable: 'dockerPassword', usernameVariable: 'dockerUsername')]) {
+            dir("$imageBuildHome") {
+                sh "podman --version"
+                sh "podman login -u $dockerUsername -p $dockerPassword $imageRegistry"
+                sh "podman push $imagePushRegistry:$appVersion"
+            }
+        }
+    }
+}
