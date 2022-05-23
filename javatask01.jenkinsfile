@@ -3,11 +3,13 @@ node {
     def mvnWorkspace = './'
     def appVersion
 
-    def imageRegistry = 'docker.io'
+    def loginImageRegistry = 'docker.io'
     def imageBuildHome='./'
     def imagePushRegistry='docker.io/milkliver/java-task01'
     
     def dockerfilePath = './Dockerfile'
+
+    def scdfAppName = "java-application02"
 
     stage('Preparation') { // for display purposes
         // Get some code from a GitHub repository
@@ -36,7 +38,7 @@ node {
         withCredentials([usernamePassword(credentialsId: 'neil-dockerhub', passwordVariable: 'dockerPassword', usernameVariable: 'dockerUsername')]) {
             dir("$imageBuildHome") {
                 sh "buildah --version"
-                sh "buildah login -u $dockerUsername -p $dockerPassword $imageRegistry"
+                sh "buildah login -u $dockerUsername -p $dockerPassword $loginImageRegistry"
                 sh "buildah bud -t $imagePushRegistry:$appVersion ."
             }
         }
@@ -47,9 +49,15 @@ node {
         withCredentials([usernamePassword(credentialsId: 'neil-dockerhub', passwordVariable: 'dockerPassword', usernameVariable: 'dockerUsername')]) {
             dir("$imageBuildHome") {
                 sh "podman --version"
-                sh "podman login -u $dockerUsername -p $dockerPassword $imageRegistry"
+                sh "podman login -u $dockerUsername -p $dockerPassword $loginImageRegistry"
                 sh "podman push $imagePushRegistry:$appVersion"
             }
         }
+    }
+
+    stage('scdf add app') {
+        // Run the scdf add app
+        sh "curl --location --request POST 'http://dataflow.prd.tanzu/apps/task/$scdfAppName?uri=docker://$imagePushRegistry:$appVersion&force=false'"
+        sh "curl --location --request PUT 'http://dataflow.prd.tanzu/apps/task/$scdfAppName/$appVersion'"
     }
 }
