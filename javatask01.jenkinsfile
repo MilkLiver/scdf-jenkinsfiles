@@ -9,7 +9,8 @@ node {
     
     def dockerfilePath = './Dockerfile'
 
-    def scdfAppName = "java-application02"
+    def scdfAppName = "java-application03"
+    def scdfTaskName = "java-task03"
 
     stage('Preparation') { // for display purposes
         // Get some code from a GitHub repository
@@ -59,5 +60,6 @@ node {
         // Run the scdf add app
         sh "curl --location --request POST 'http://dataflow.prd.tanzu/apps/task/$scdfAppName?uri=docker://$imagePushRegistry:$appVersion&force=false'"
         sh "curl --location --request PUT 'http://dataflow.prd.tanzu/apps/task/$scdfAppName/$appVersion'"
+        sh "curl --location --request POST 'http://dataflow.prd.tanzu/tasks/definitions?definition=$scdfAppName&name=$scdfTaskName&description= '"
     }
 }
