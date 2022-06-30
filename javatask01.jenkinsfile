@@ -60,6 +60,6 @@ node {
         // Run the scdf add app
         sh "curl --location --request POST 'http://dataflow.prd.tanzu/apps/task/$scdfAppName?uri=docker://$imagePushRegistry:$appVersion&force=false'"
         sh "curl --location --request PUT 'http://dataflow.prd.tanzu/apps/task/$scdfAppName/$appVersion'"
-        sh "curl --location --request POST 'http://dataflow.prd.tanzu/tasks/definitions?definition=$scdfAppName&name=$scdfTaskName&description= '"
+        //sh "curl --location --request POST 'http://dataflow.prd.tanzu/tasks/definitions?definition=$scdfAppName&name=$scdfTaskName&description= '"
     }
 }
